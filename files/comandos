@@ -1,0 +1,29 @@
+.csr e .key -->
+
+openssl req -new -subj "/CN=d0611bb6-a4b6-4c5f-b47d-65ec5f91e7a4/OU=IT/L=Sao Paulo/ST=SP/C=BR" -out 4CantosOperadora.csr -nodes -sha512 -newkey rsa:2048 -keyout 4CantosOperadora.key
+
+
+.pfx -->
+
+openssl pkcs12 -export -in 4CantosOperadora.cer -inkey 4CantosOperadora.key -out 4CantosOperadora.pfx
+------------------------------------------------------------------------------------------------------
+Atualizar contrato
+
+1. .pfx <converter> .key -> 
+
+openssl pkcs12 -in beachpark.pfx -nocerts -out beachpark.key -nodes
+
+
+2. .pfx <converter> .crt  ->
+
+openssl pkcs12 -in beachpark.pfx -clcerts -nokeys -out beachpark.crt
+
+
+3. .crt <converter> .csr ->
+
+openssl req -new -key beachpark.key -out beachpark.csr -subj "/C=BR/ST=SP/L=Sao Paulo/O=Beach Park/OU=IT/CN=3c90f5f2-ebce-4191-a01b-7bad88e87c90"
+
+4. .pfx -->
+
+openssl pkcs12 -export -in 4CantosOperadora.cer -inkey 4CantosOperadora.key -out 4CantosOperadora.pfx
+

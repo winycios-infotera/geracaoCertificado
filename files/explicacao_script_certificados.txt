@@ -1,0 +1,46 @@
+📄 EXPLICAÇÃO DO SCRIPT gerar_certificados.sh
+
+Este script tem como objetivo automatizar o processo de extração de arquivos .key, .crt e .csr a partir de um certificado .pfx.
+
+🔧 PARÂMETROS DO SCRIPT
+
+- CLIENTE: Nome do cliente (por exemplo: brasileirosporai)
+- CN: Valor do Common Name (Esse common name equilvale ao client_id. Por exemplo: 04a0df2e-d9e0-4c32-b9ac-de319de2b6a6)
+- CS: valor do client secret (Esse valor é o client secret do cliente. Por exemplo: 26fe1c17-e8bb-41f3-b9f8-a301d0098c54)
+- SENHA: Senha do seu usuario ubuntu
+
+📌 COMO USAR
+
+1. Dar permissão de execução
+   No terminal, vá até o diretório onde está o arquivo e execute:
+
+   chmod +x gerar_certificados.sh
+
+3. Executar o Script com os Parâmetros
+   Utilize o comando abaixo, substituindo <cliente> <CN> <CS> <SENHA> pelos valores corretos:
+
+   ./gerar_certificados.sh <cliente> <CN> <CS> <SENHA>
+
+   Exemplo prático:
+   ./gerar_certificados.sh brasileirosporai 04a0df2e-d9e0-4c32-b9ac-de319de2b6a6 26fe1c17-e8bb-41f3-b9f8-a301d0098c54 infotera1820
+
+⚙️ O QUE O SCRIPT FAZ
+
+1. Extrai a chave privada (.key)
+   openssl pkcs12 -in CLIENTE.pfx -nocerts -out CLIENTE.key -nodes
+
+2. Extrai o certificado (.crt)
+   openssl pkcs12 -in CLIENTE.pfx -clcerts -nokeys -out CLIENTE.crt
+
+3. Gera o arquivo de requisição de assinatura de certificado (.csr)
+   openssl req -new -key CLIENTE.key -out CLIENTE.csr -subj "/C=BR/ST=SP/L=Sao Paulo/O=CLIENTE/OU=IT/CN=CN"
+
+📂 ARQUIVOS GERADOS
+
+Após a execução, você terá os seguintes arquivos no mesmo diretório:
+
+- CLIENTE.key
+- CLIENTE.crt
+- CLIENTE.csr
+
+OBS: o arquivo .sh deve ser executado dentro de uma maquina virtual ubuntu 20.04.6 LTS
