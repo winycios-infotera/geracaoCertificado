@@ -13,21 +13,24 @@ clientes em seus sistemas de pagamento.
 
 ## ⚠️ Importante
 
-É necessario colocar o arquivo cliente.pfx na pasta resources/documentos.
+É necessario colocar o arquivo cliente.pfx por parametro da API.
 
 ## 📝 Documentação da API
 
-#### Autenticar certificado
+#### Renovar certificado
 
 ```http
-  POST /api/certificado/autenticar
+  POST /api/certificado/renovar
 ```
+
+> Content-Type: multipart/form-data
 
 | Parâmetro      | Tipo     | Descrição                                                   |
 |:---------------|:---------|:------------------------------------------------------------|
 | `client`       | `string` | **Obrigatório**. cliente que está solicitando o certificado |
 | `clientId`     | `string` | **Obrigatório**. clientId do cliente                        |
 | `clientSecret` | `string` | **Obrigatório**. clientSecret do cliente                    |
+| `clientPfx`    | `file`   | **Obrigatório**. arquivo .pfx do cliente                    |
 
 > **ℹ️ Observação:** As informações podem ser obtidas diretamente através da API `it-pagamento`.
 
@@ -103,7 +106,7 @@ Body:
 
 ### 7. 📎 Receber e salvar novo certificado (.cer)
 
-Salve o conteúdo da resposta (certificado gerado) em um arquivo .cer
+Salve o conteúdo da resposta (certificado gerado) num arquivo .cer
 
 ---
 
@@ -113,7 +116,7 @@ Salve o conteúdo da resposta (certificado gerado) em um arquivo .cer
 openssl pkcs12 -export -in CLIENTE.cer -inkey CLIENTE.key -out CLIENTE.pfx
 ```
 
-> Combina o novo certificado e a chave privada em um novo `.pfx`.
+> Combina o novo certificado e a chave privada num novo `.pfx`.
 
 ---
 

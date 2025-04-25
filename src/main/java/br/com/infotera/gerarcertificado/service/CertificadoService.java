@@ -1,68 +1,67 @@
 package br.com.infotera.gerarcertificado.service;
 
 import br.com.infotera.gerarcertificado.exception.ResourceException;
-import br.com.infotera.gerarcertificado.model.RequestUser;
+import br.com.infotera.gerarcertificado.model.RequestClient;
 import br.com.infotera.gerarcertificado.model.ResponseToken;
-
-import br.com.infotera.gerarcertificado.util.PfxProcessorUtil;
-import org.springframework.core.io.ClassPathResource;
+import br.com.infotera.gerarcertificado.util.PfxProcessUtil;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.util.Comparator;
 import java.util.logging.Logger;
 
+
+/**
+ * The type Certificado service.
+ */
 @Service
 public class CertificadoService {
 
     private final TokenService tokenService;
-    private final PfxProcessorUtil pfxProcessorUtil;
+    private final PfxProcessUtil pfxProcessUtil;
     private final Logger logger = Logger.getLogger(CertificadoService.class.getName());
 
-    public CertificadoService(TokenService tokenService, PfxProcessorUtil pfxProcessorUtil) {
+    public CertificadoService(TokenService tokenService, PfxProcessUtil pfxProcessUtil) {
         this.tokenService = tokenService;
-        this.pfxProcessorUtil = pfxProcessorUtil;
+        this.pfxProcessUtil = pfxProcessUtil;
     }
 
-    public ResponseToken autenticar(RequestUser requestUser) throws Exception {
-        if (requestUser.getClient().isEmpty() || requestUser.getClientId().isEmpty() || requestUser.getClientSecret().isEmpty()) {
-            throw new ResourceException("Uso: java GerarCertificadoEToken <client> <clientId> <clientSecret>");
+
+    public ResponseToken renewPixCertificate(RequestClient requestClient, MultipartFile clientPfx) throws Exception {
+
+        if (clientPfx.isEmpty()) {
+            throw new ResourceException("Arquivo PFX vazio");
+        } else {
+            clientPfx.getResource();
         }
 
         Path pathDiretory = Path.of("", "certificados");
 
         if (Files.exists(pathDiretory)) {
             logger.info("🧹 Arquivos antigos removidos");
-            deletarDiretorioRecursivamente(pathDiretory);
+            deleteDirectoryRecursively(pathDiretory);
         }
 
-        // 1. Localizar o arquivo PFX no resources/documentos
-        String pfxFile = requestUser.getClient() + ".pfx";
-        Path tempPfxPath = getPfxFromResources(pfxFile);
+        // 1. Localizar o arquivo PFX - arquivo vem da requisição
 
         // 2. Criar diretório temporário para os arquivos gerados
         Path tempDir = Files.createDirectory(pathDiretory);
         logger.info("📁 Diretório temporário criado: " + tempDir);
 
         // 3. Definir caminhos dos arquivos de saída
-        String keyPath = tempDir.resolve(requestUser.getClient() + ".key").toString();
-        String crtPath = tempDir.resolve(requestUser.getClient() + ".crt").toString();
-        String csrPath = tempDir.resolve(requestUser.getClient() + ".csr").toString();
+        String keyPath = tempDir.resolve(requestClient.getClient() + ".key").toString();
+        String crtPath = tempDir.resolve(requestClient.getClient() + ".crt").toString();
+        String csrPath = tempDir.resolve(requestClient.getClient() + ".csr").toString();
 
         try {
             // 4. Processa certificados
-            pfxProcessorUtil.processPfx(tempPfxPath, requestUser.getClient(), requestUser.getClientId(), Path.of(keyPath), Path.of(crtPath), Path.of(csrPath));
-
-            // Ajustar permissões
-            runCommand("chmod", "644", crtPath);
-            runCommand("chmod", "644", keyPath);
+            pfxProcessUtil.processPfx(clientPfx, requestClient.getClient(), requestClient.getClientId(), Path.of(keyPath), Path.of(crtPath), Path.of(csrPath));
 
             // 5. Gerar token
-            ResponseToken tokenResponse = tokenService.gerarToken(crtPath, keyPath, requestUser.getClientId(), requestUser.getClientSecret());
+            ResponseToken tokenResponse = tokenService.generateToken(crtPath, keyPath, requestClient.getClientId(), requestClient.getClientSecret());
 
             if (tokenResponse != null) {
                 logger.config("✅ Access Token gerado com sucesso:");
@@ -77,46 +76,20 @@ public class CertificadoService {
         }
     }
 
-    // Localizar o arquivo PFX no resources
-    private Path getPfxFromResources(String pfxFile) throws IOException {
-        String resourcePath = "documentos/" + pfxFile;
-        InputStream inputStream = new ClassPathResource(resourcePath).getInputStream();
-
-        if (inputStream == null) {
-            throw new ResourceException("❌ Arquivo \"" + pfxFile + "\" não encontrado em resources/documentos.");
-        }
-
-        // Cria um arquivo temporário para o PFX
-        Path tempPfxPath = Files.createTempFile("temp_", ".pfx");
-        Files.copy(inputStream, tempPfxPath, StandardCopyOption.REPLACE_EXISTING);
-        inputStream.close();
-
-        return tempPfxPath;
-    }
-
-    private static void runCommand(String... command) throws IOException, InterruptedException {
-        ProcessBuilder pb = new ProcessBuilder(command);
-        pb.inheritIO();
-        Process p = pb.start();
-        int code = p.waitFor();
-        if (code != 0) {
-            throw new ResourceException("Erro ao executar comando: " + String.join(" ", command));
-        }
-    }
-
     // Limpa o diretório temporário
-    private void deletarDiretorioRecursivamente(Path path) throws IOException {
+    private void deleteDirectoryRecursively(Path path) throws IOException {
 
         if (Files.exists(path)) {
             Files.walk(path)
                     .sorted(Comparator.reverseOrder())
                     .forEach(p -> {
-                        try {
-                            Files.delete(p);
-                        } catch (IOException e) {
-                            throw new RuntimeException("Erro ao deletar: " + p, e);
-                        }
-                    });
+                                try {
+                                    Files.delete(p);
+                                } catch (IOException e) {
+                                    throw new RuntimeException("Erro ao deletar: " + p, e);
+                                }
+                            }
+                    );
         }
     }
 

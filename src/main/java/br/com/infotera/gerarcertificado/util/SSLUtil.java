@@ -21,6 +21,15 @@ import java.security.cert.X509Certificate;
 @Component
 public class SSLUtil {
 
+
+    /**
+     * Cria um certificado digital SSL.
+     *
+     * @param certPath caminho do certificado
+     * @param keyPath  caminho da chave
+     * @return retorna o contexto SSL
+     * @throws Exception the exception
+     */
     public SSLContext createSSLContext(String certPath, String keyPath) throws Exception {
         Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
 
