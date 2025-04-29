@@ -74,8 +74,6 @@ openssl req -new -key CLIENTE.key -out CLIENTE.csr -subj "/C=BR/ST=SP/L=Sao Paul
 
 Envia o `.crt` e a `.key` para o endpoint de autenticação do banco Itaú para gerar o **‘token’ de autenticação**.
 
-> 📌 *A API até então equivale aos três primeiros passos do arquivo **comandos.txt**
-
 ---
 
 ### 5. 🔍 Extrair conteúdo do certificado `.csr`
@@ -91,7 +89,7 @@ Lê e copia o conteúdo do arquivo `.csr` gerado.
 Realiza uma requisição `POST` com o ‘token’ e o conteúdo do `.csr` para gerar um novo certificado:
 
 ```
-POST https://sts.itau.com.br/seguranca/v1/certificado/solicitacao
+POST https://sts.itau.com.br/seguranca/v1/certificado/renovacao
 Headers:
   Authorization: Bearer <TOKEN>
   Content-Type: application/json
@@ -106,7 +104,7 @@ Body:
 
 ### 7. 📎 Receber e salvar novo certificado (.cer)
 
-Salve o conteúdo da resposta (certificado gerado) num arquivo .cer
+Salve o conteúdo da resposta (certificado gerado) num arquivo.cer
 
 ---
 

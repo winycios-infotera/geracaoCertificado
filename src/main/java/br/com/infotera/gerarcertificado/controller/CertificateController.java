@@ -2,8 +2,9 @@ package br.com.infotera.gerarcertificado.controller;
 
 
 import br.com.infotera.gerarcertificado.model.RequestClient;
-import br.com.infotera.gerarcertificado.model.ResponseToken;
-import br.com.infotera.gerarcertificado.service.CertificadoService;
+import br.com.infotera.gerarcertificado.model.certificate.ResponseCertificate;
+import br.com.infotera.gerarcertificado.model.token.ResponseToken;
+import br.com.infotera.gerarcertificado.service.CertificateService;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import org.springframework.http.MediaType;
@@ -18,9 +19,9 @@ import org.springframework.web.multipart.MultipartFile;
 @RequestMapping("/certificado")
 @RestController
 @AllArgsConstructor
-public class CertificadoController {
+public class CertificateController {
 
-    private final CertificadoService certificadoService;
+    private final CertificateService certificateService;
 
     /**
      * Renova o certificado pix.
@@ -31,10 +32,10 @@ public class CertificadoController {
      * @throws Exception the exception
      */
     @PostMapping(value = "/renovar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<ResponseToken> renewPixCertificate(
+    public ResponseEntity<ResponseCertificate> renewPixCertificate(
             @ModelAttribute @Valid RequestClient requestClient,
             @RequestParam("clientPfx") MultipartFile clientPfx) throws Exception {
 
-        return ResponseEntity.ok(certificadoService.renewPixCertificate(requestClient, clientPfx));
+        return ResponseEntity.ok(certificateService.renewPixCertificate(requestClient, clientPfx));
     }
 }

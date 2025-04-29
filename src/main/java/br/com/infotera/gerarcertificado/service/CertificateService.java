@@ -2,7 +2,8 @@ package br.com.infotera.gerarcertificado.service;
 
 import br.com.infotera.gerarcertificado.exception.ResourceException;
 import br.com.infotera.gerarcertificado.model.RequestClient;
-import br.com.infotera.gerarcertificado.model.ResponseToken;
+import br.com.infotera.gerarcertificado.model.certificate.ResponseCertificate;
+import br.com.infotera.gerarcertificado.model.token.ResponseToken;
 import br.com.infotera.gerarcertificado.util.PfxProcessUtil;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -18,19 +19,20 @@ import java.util.logging.Logger;
  * The type Certificado service.
  */
 @Service
-public class CertificadoService {
+public class CertificateService {
 
-    private final TokenService tokenService;
+    private final RequestService requestService;
     private final PfxProcessUtil pfxProcessUtil;
-    private final Logger logger = Logger.getLogger(CertificadoService.class.getName());
+    private final Logger logger = Logger.getLogger(CertificateService.class.getName());
 
-    public CertificadoService(TokenService tokenService, PfxProcessUtil pfxProcessUtil) {
-        this.tokenService = tokenService;
+    public CertificateService(RequestService requestService, PfxProcessUtil pfxProcessUtil) {
+        this.requestService = requestService;
         this.pfxProcessUtil = pfxProcessUtil;
     }
 
 
-    public ResponseToken renewPixCertificate(RequestClient requestClient, MultipartFile clientPfx) throws Exception {
+    public ResponseCertificate
+    renewPixCertificate(RequestClient requestClient, MultipartFile clientPfx) throws Exception {
 
         if (clientPfx.isEmpty()) {
             throw new ResourceException("Arquivo PFX vazio");
@@ -61,16 +63,22 @@ public class CertificadoService {
             pfxProcessUtil.processPfx(clientPfx, requestClient.getClient(), requestClient.getClientId(), Path.of(keyPath), Path.of(crtPath), Path.of(csrPath));
 
             // 5. Gerar token
-            ResponseToken tokenResponse = tokenService.generateToken(crtPath, keyPath, requestClient.getClientId(), requestClient.getClientSecret());
+            ResponseToken tokenResponse = requestService.generateToken(crtPath, keyPath, requestClient.getClientId(), requestClient.getClientSecret());
 
             if (tokenResponse != null) {
                 logger.config("✅ Access Token gerado com sucesso:");
                 logger.info(tokenResponse.toString());
             }
-            return tokenResponse;
+
+            // 6. Renovação do certificado (vem como conteudo.csr)
+            ResponseCertificate responseCertificate = requestService.renewCertificate(csrPath, crtPath, keyPath, tokenResponse);
+
+            // 7. Gera um arquivo.cer
+
+            return responseCertificate;
         } catch (Exception e) {
             logger.info("❌ Erro ao processar certificados: " + e.getMessage());
-            throw new ResourceException("❌ Erro ao processar certificados: " + e.getMessage());
+            throw new ResourceException("Erro ao processar certificados: " + e.getMessage());
         } finally {
             logger.info("🎉 Fluxo concluido");
         }
