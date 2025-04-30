@@ -5,6 +5,7 @@ import br.com.infotera.gerarcertificado.model.RequestClient;
 import br.com.infotera.gerarcertificado.model.certificate.ResponseCertificate;
 import br.com.infotera.gerarcertificado.model.token.ResponseToken;
 import br.com.infotera.gerarcertificado.util.PfxProcessUtil;
+import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -31,8 +32,7 @@ public class CertificateService {
     }
 
 
-    public ResponseCertificate
-    renewPixCertificate(RequestClient requestClient, MultipartFile clientPfx) throws Exception {
+    public String renewPixCertificate(RequestClient requestClient, MultipartFile clientPfx) throws Exception {
 
         if (clientPfx.isEmpty()) {
             throw new ResourceException("Arquivo PFX vazio");
@@ -73,9 +73,10 @@ public class CertificateService {
             // 6. Renovação do certificado (vem como conteudo.csr)
             ResponseCertificate responseCertificate = requestService.renewCertificate(csrPath, crtPath, keyPath, tokenResponse);
 
-            // 7. Gera um arquivo.cer
+            // 7. Gera um arquivo.pfx
+            pfxProcessUtil.gerarPfx(responseCertificate, keyPath, clientPfx, requestClient);
 
-            return responseCertificate;
+            return "pfx/" + requestClient.getClient() + ".pfx";
         } catch (Exception e) {
             logger.info("❌ Erro ao processar certificados: " + e.getMessage());
             throw new ResourceException("Erro ao processar certificados: " + e.getMessage());

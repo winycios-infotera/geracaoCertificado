@@ -100,7 +100,7 @@ class RequestServiceTest {
                     requestService.generateToken(crtPath, keyPath, clientId, clientSecret);
                 });
 
-                Assertions.assertEquals("Erro ao obter token: Erro ao configurar o HttpClient", exception.getMessage());
+                Assertions.assertEquals("Erro ao obter token: Erro ao configurar o SSL", exception.getMessage());
             }
 
 

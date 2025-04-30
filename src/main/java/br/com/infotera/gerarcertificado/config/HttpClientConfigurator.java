@@ -62,7 +62,10 @@ public class HttpClientConfigurator {
             ((HttpComponentsClientHttpRequestFactory) restTemplate.getRequestFactory()).setHttpClient(httpClient);
 
         } catch (Exception e) {
-            throw new ResourceException("Erro ao configurar o HttpClient");
+            if (!e.getMessage().contains("SSL")) {
+                throw new ResourceException("Erro ao configurar o HttpClient");
+            }
+            throw new ResourceException(e.getMessage());
         }
     }
 }
