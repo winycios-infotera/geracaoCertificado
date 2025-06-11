@@ -31,7 +31,7 @@ class CertificateMapperTest {
                                     MIIDizCCAnOgAwIBAgITLgAAACb+81zoTyaebQAAAAAAJjANBgkqhkiG9w0BAQsF
                                     -----END CERTIFICATE-----""",
                             response.getCertificate(),
-                            "Certificado mapeado incorretamente"
+                            "Certificado mapeado corretamente"
                     )
             );
         }

@@ -176,6 +176,6 @@ public class PfxProcessUtil {
             pkcs12.store(out, pfxPassword.toCharArray());
         }
 
-        System.out.println("Arquivo PFX gerado com sucesso em: " + caminhoSaidaPfx.toAbsolutePath());
+        logger.info("Arquivo PFX gerado com sucesso em: " + caminhoSaidaPfx.toAbsolutePath());
     }
 }

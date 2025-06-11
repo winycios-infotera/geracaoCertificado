@@ -23,11 +23,6 @@ public class CertificateMapper {
 
         String[] lines = rawResponse.split("\\r?\\n");
 
-        if (lines.length > 0 && lines[0].startsWith("Secret:")) {
-            response.setSecret(lines[0].substring(7).trim());
-        } else {
-            throw new ResourceException("Resposta de certificado inválida.");
-        }
 
         StringBuilder certBuilder = new StringBuilder();
         for (int i = 1; i < lines.length; i++) {
