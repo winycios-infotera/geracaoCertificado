@@ -2,6 +2,7 @@ package br.com.infotera.gerarcertificado.util;
 
 
 import br.com.infotera.gerarcertificado.model.RequestClient;
+import br.com.infotera.gerarcertificado.model.SimpleMultipartFile;
 import br.com.infotera.gerarcertificado.model.certificate.ResponseCertificate;
 import org.bouncycastle.asn1.ASN1Sequence;
 import org.bouncycastle.asn1.pkcs.RSAPrivateKey;
@@ -13,8 +14,9 @@ import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.bouncycastle.pkcs.PKCS10CertificationRequestBuilder;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Component;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -40,8 +42,25 @@ public class PfxProcessUtil {
     @Value("${app.certificates.pfxPassword}")
     private String pfxPassword;
 
+    // mapeia o arquivo pfx
+    public SimpleMultipartFile getPfxFileForClient(String filename) throws IOException {
+        Resource resource = new ClassPathResource("pfx/" + filename);
+
+        if (!resource.exists()) {
+            throw new IllegalStateException("Arquivo PFX não encontrado: " + filename);
+        }
+
+        byte[] content;
+        try (InputStream is = resource.getInputStream()) {
+            content = is.readAllBytes();
+        }
+
+        return new SimpleMultipartFile(filename.substring(0, filename.lastIndexOf('.')), filename, "application/x-pkcs12", content);
+    }
+
+
     //    Processa arquivo PFX
-    public void processPfx(MultipartFile clientPfx, String client, String clientId, Path keyPath, Path crtPath, Path csrPath) throws Exception {
+    public void processPfx(SimpleMultipartFile clientPfx, String client, String clientId, Path keyPath, Path crtPath, Path csrPath) throws Exception {
         Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
 
         KeyStore keystore = KeyStore.getInstance("PKCS12", "BC");
@@ -97,7 +116,7 @@ public class PfxProcessUtil {
     }
 
 
-    public void gerarPfx(ResponseCertificate responseCertificate, String pathKey, MultipartFile pathPfx, RequestClient requestClient) throws Exception {
+    public void gerarPfx(ResponseCertificate responseCertificate, String pathKey, SimpleMultipartFile pathPfx, RequestClient requestClient) throws Exception {
         Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
 
         // 1. Criar pasta "pfx" se não existir
@@ -106,7 +125,7 @@ public class PfxProcessUtil {
             Files.createDirectories(pastaPfx);
         }
 
-        // 2. Carregar certificado da string
+        // 2. Processar certificado
         String certPem = responseCertificate.getCertificate()
                 .replace("-----BEGIN CERTIFICATE-----", "")
                 .replace("-----END CERTIFICATE-----", "")

@@ -32,16 +32,14 @@ public class CertificateController {
      * Renova o certificado pix.
      *
      * @param requestClient dados do cliente
-     * @param clientPfx     ultimo arquivo.pfx gerado
      * @return Retorna o arquivo.pfx renovado em bytes para ‘download’
      * @throws Exception the exception
      */
     @PostMapping(value = "/renovar/byte", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Resource> renewPixCertificate(
-            @ModelAttribute @Valid RequestClient requestClient,
-            @RequestParam("clientPfx") MultipartFile clientPfx) throws Exception {
+            @ModelAttribute @Valid RequestClient requestClient) throws Exception {
 
-        Path path = Paths.get(certificateService.renewPixCertificate(requestClient, clientPfx));
+        Path path = Paths.get(certificateService.renewPixCertificate(requestClient));
         Resource resource = new FileSystemResource(path);
 
         String fileName = path.getFileName().toString();

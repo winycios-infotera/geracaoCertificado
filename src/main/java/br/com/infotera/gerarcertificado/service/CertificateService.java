@@ -2,10 +2,11 @@ package br.com.infotera.gerarcertificado.service;
 
 import br.com.infotera.gerarcertificado.exception.ResourceException;
 import br.com.infotera.gerarcertificado.model.RequestClient;
+import br.com.infotera.gerarcertificado.model.SimpleMultipartFile;
 import br.com.infotera.gerarcertificado.model.certificate.ResponseCertificate;
 import br.com.infotera.gerarcertificado.model.token.ResponseToken;
 import br.com.infotera.gerarcertificado.util.PfxProcessUtil;
-import jakarta.annotation.Resource;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -13,6 +14,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Comparator;
+import java.util.Map;
+import java.util.Objects;
 import java.util.logging.Logger;
 
 
@@ -25,19 +28,24 @@ public class CertificateService {
     private final RequestService requestService;
     private final PfxProcessUtil pfxProcessUtil;
     private final Logger logger = Logger.getLogger(CertificateService.class.getName());
+    private final Map<String, String> clientPfxMap;
 
-    public CertificateService(RequestService requestService, PfxProcessUtil pfxProcessUtil) {
+
+    public CertificateService(RequestService requestService, PfxProcessUtil pfxProcessUtil, @Qualifier("clientPfxMap") Map<String, String> clientPfxMap) {
         this.requestService = requestService;
         this.pfxProcessUtil = pfxProcessUtil;
+        this.clientPfxMap = clientPfxMap;
     }
 
+    public String renewPixCertificate(RequestClient requestClient) throws Exception {
 
-    public String renewPixCertificate(RequestClient requestClient, MultipartFile clientPfx) throws Exception {
-
-        if (clientPfx.isEmpty()) {
-            throw new ResourceException("Arquivo PFX vazio");
+        String filename = clientPfxMap.get(requestClient.getClient().toLowerCase());
+        SimpleMultipartFile clientPfx = null;
+        if (filename.isBlank()) {
+            throw new ResourceException("Cliente informado não encontrado");
         } else {
-            clientPfx.getResource();
+            clientPfx = pfxProcessUtil.getPfxFileForClient(filename);
+            requestClient.setClient(clientPfx.getFilename());
         }
 
         Path pathDiretory = Path.of("", "certificados");
