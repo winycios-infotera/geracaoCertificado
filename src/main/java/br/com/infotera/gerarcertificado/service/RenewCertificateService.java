@@ -8,14 +8,10 @@ import br.com.infotera.gerarcertificado.model.token.ResponseToken;
 import br.com.infotera.gerarcertificado.util.PfxProcessUtil;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Comparator;
 import java.util.Map;
-import java.util.Objects;
 import java.util.logging.Logger;
 
 
@@ -23,15 +19,15 @@ import java.util.logging.Logger;
  * The type Certificado service.
  */
 @Service
-public class CertificateService {
+public class RenewCertificateService {
 
     private final RequestService requestService;
     private final PfxProcessUtil pfxProcessUtil;
-    private final Logger logger = Logger.getLogger(CertificateService.class.getName());
+    private final Logger logger = Logger.getLogger(RenewCertificateService.class.getName());
     private final Map<String, String> clientPfxMap;
 
 
-    public CertificateService(RequestService requestService, PfxProcessUtil pfxProcessUtil, @Qualifier("clientPfxMap") Map<String, String> clientPfxMap) {
+    public RenewCertificateService(RequestService requestService, PfxProcessUtil pfxProcessUtil, @Qualifier("clientPfxMap") Map<String, String> clientPfxMap) {
         this.requestService = requestService;
         this.pfxProcessUtil = pfxProcessUtil;
         this.clientPfxMap = clientPfxMap;
@@ -52,7 +48,7 @@ public class CertificateService {
 
         if (Files.exists(pathDiretory)) {
             logger.info("🧹 Arquivos antigos removidos");
-            deleteDirectoryRecursively(pathDiretory);
+            pfxProcessUtil.deleteDirectoryRecursively(pathDiretory);
         }
 
         // 1. Localizar o arquivo PFX - arquivo vem da requisição
@@ -82,7 +78,7 @@ public class CertificateService {
             ResponseCertificate responseCertificate = requestService.renewCertificate(csrPath, crtPath, keyPath, tokenResponse);
 
             // 7. Gera um arquivo.pfx
-            pfxProcessUtil.gerarPfx(responseCertificate, keyPath, clientPfx, requestClient);
+            pfxProcessUtil.gerarPfx(responseCertificate, keyPath, clientPfx, requestClient.getClient());
 
             return "pfx/" + requestClient.getClient() + ".pfx";
         } catch (Exception e) {
@@ -90,23 +86,6 @@ public class CertificateService {
             throw new ResourceException("Erro ao processar certificados: " + e.getMessage());
         } finally {
             logger.info("🎉 Fluxo concluido");
-        }
-    }
-
-    // Limpa o diretório temporário
-    private void deleteDirectoryRecursively(Path path) throws IOException {
-
-        if (Files.exists(path)) {
-            Files.walk(path)
-                    .sorted(Comparator.reverseOrder())
-                    .forEach(p -> {
-                                try {
-                                    Files.delete(p);
-                                } catch (IOException e) {
-                                    throw new RuntimeException("Erro ao deletar: " + p, e);
-                                }
-                            }
-                    );
         }
     }
 

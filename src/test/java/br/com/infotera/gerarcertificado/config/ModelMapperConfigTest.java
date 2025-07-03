@@ -1,6 +1,5 @@
 package br.com.infotera.gerarcertificado.config;
 
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.modelmapper.ModelMapper;

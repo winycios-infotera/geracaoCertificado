@@ -1,7 +1,6 @@
 package br.com.infotera.gerarcertificado.util;
 
 
-import br.com.infotera.gerarcertificado.model.RequestClient;
 import br.com.infotera.gerarcertificado.model.SimpleMultipartFile;
 import br.com.infotera.gerarcertificado.model.certificate.ResponseCertificate;
 import org.bouncycastle.asn1.ASN1Sequence;
@@ -22,16 +21,14 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.security.KeyFactory;
-import java.security.KeyStore;
-import java.security.PrivateKey;
-import java.security.Security;
+import java.security.*;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.RSAPrivateCrtKeySpec;
 import java.util.Base64;
+import java.util.Comparator;
 import java.util.logging.Logger;
 
 @Component
@@ -88,21 +85,21 @@ public class PfxProcessUtil {
     }
 
     //Gera arquivo .key
-    void savePrivateKey(PrivateKey privateKey, Path keyPath) throws IOException {
+    public void savePrivateKey(PrivateKey privateKey, Path keyPath) throws IOException {
         try (var writer = new JcaPEMWriter(new FileWriter(keyPath.toFile()))) {
             writer.writeObject(privateKey);
         }
     }
 
     //Gera arquivo.crt
-    void saveCertificate(X509Certificate cert, Path crtPath) throws IOException {
+    public void saveCertificate(X509Certificate cert, Path crtPath) throws IOException {
         try (var writer = new JcaPEMWriter(new FileWriter(crtPath.toFile()))) {
             writer.writeObject(cert);
         }
     }
 
     //Gera arquivo .csr
-    void generateCSR(PrivateKey privateKey, X509Certificate cert, String client, String clientId, Path csrPath) throws Exception {
+    public void generateCSR(PrivateKey privateKey, X509Certificate cert, String client, String clientId, Path csrPath) throws Exception {
         X500Name subject = new X500Name(String.format("C=BR, ST=SP, L=Sao Paulo, O=%s, OU=IT, CN=%s", client.toUpperCase(), clientId));
 
         SubjectPublicKeyInfo publicKeyInfo = SubjectPublicKeyInfo.getInstance(cert.getPublicKey().getEncoded());
@@ -115,8 +112,37 @@ public class PfxProcessUtil {
         }
     }
 
+    public void generateKeyAndCsr(String client, String clientId, Path keyPath, Path csrPath) throws Exception {
+        // Adiciona o provider BouncyCastle
+        Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
 
-    public void gerarPfx(ResponseCertificate responseCertificate, String pathKey, SimpleMultipartFile pathPfx, RequestClient requestClient) throws Exception {
+        // 1. Gerar par de chaves
+        KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
+        keyGen.initialize(2048);
+        KeyPair keyPair = keyGen.generateKeyPair();
+
+        X500Name subject = new X500Name(String.format("C=BR, ST=SP, L=Sao Paulo, O=%s, OU=IT, CN=%s", client.toUpperCase(), clientId));
+
+        // 3. Gerar CSR
+        SubjectPublicKeyInfo publicKeyInfo = SubjectPublicKeyInfo.getInstance(keyPair.getPublic().getEncoded());
+        ContentSigner signer = new JcaContentSignerBuilder("SHA512withRSA").build(keyPair.getPrivate());
+        PKCS10CertificationRequestBuilder csrBuilder = new PKCS10CertificationRequestBuilder(subject, publicKeyInfo);
+        PKCS10CertificationRequest csr = csrBuilder.build(signer);
+
+        // 4. Salvar chave privada (.key)
+        try (var writer = new JcaPEMWriter(new FileWriter(keyPath.toFile()))) {
+            writer.writeObject(keyPair.getPrivate());
+        }
+
+        // 5. Salvar CSR (.csr)
+        try (var writer = new JcaPEMWriter(new FileWriter(csrPath.toFile()))) {
+            writer.writeObject(csr);
+        }
+
+        logger.info("✅ KEY e CSR gerados com sucesso.");
+    }
+
+    public void gerarPfx(ResponseCertificate responseCertificate, String pathKey, SimpleMultipartFile pathPfx, String  clientName) throws Exception {
         Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
 
         // 1. Criar pasta "pfx" se não existir
@@ -180,21 +206,39 @@ public class PfxProcessUtil {
         // 4. Criar KeyStore PKCS12
         KeyStore pkcs12 = KeyStore.getInstance("PKCS12", "BC");
 
-
-        try (InputStream fis = pathPfx.getInputStream()) {
-            pkcs12.load(fis, pfxPassword.toCharArray());
+        if (pathPfx != null) {
+            try (InputStream fis = pathPfx.getInputStream()) {
+                pkcs12.load(fis, pfxPassword.toCharArray());
+            }
+        } else {
+            pkcs12.load(null, pfxPassword.toCharArray());
         }
-
-        String alias = pkcs12.aliases().nextElement();
-        pkcs12.setKeyEntry(alias, privateKey, pfxPassword.toCharArray(), new Certificate[]{cert});
+        pkcs12.setKeyEntry(clientName, privateKey, pfxPassword.toCharArray(), new Certificate[]{cert});
 
         // 5. Salvar PFX
-        String nomeArquivo = requestClient.getClient() + ".pfx";
+        String nomeArquivo = clientName + ".pfx";
         Path caminhoSaidaPfx = pastaPfx.resolve(nomeArquivo);
         try (FileOutputStream out = new FileOutputStream(caminhoSaidaPfx.toFile())) {
             pkcs12.store(out, pfxPassword.toCharArray());
         }
 
         logger.info("Arquivo PFX gerado com sucesso em: " + caminhoSaidaPfx.toAbsolutePath());
+    }
+
+    // Limpa o diretório temporário
+    public void deleteDirectoryRecursively(Path path) throws IOException {
+
+        if (Files.exists(path)) {
+            Files.walk(path)
+                    .sorted(Comparator.reverseOrder())
+                    .forEach(p -> {
+                                try {
+                                    Files.delete(p);
+                                } catch (IOException e) {
+                                    throw new RuntimeException("Erro ao deletar: " + p, e);
+                                }
+                            }
+                    );
+        }
     }
 }
