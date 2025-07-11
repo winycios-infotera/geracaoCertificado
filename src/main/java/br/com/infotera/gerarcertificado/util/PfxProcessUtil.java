@@ -29,6 +29,7 @@ import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.RSAPrivateCrtKeySpec;
 import java.util.Base64;
 import java.util.Comparator;
+import java.util.Enumeration;
 import java.util.logging.Logger;
 
 @Component
@@ -142,7 +143,7 @@ public class PfxProcessUtil {
         logger.info("✅ KEY e CSR gerados com sucesso.");
     }
 
-    public void gerarPfx(ResponseCertificate responseCertificate, String pathKey, SimpleMultipartFile pathPfx, String  clientName) throws Exception {
+    public void gerarPfx(ResponseCertificate responseCertificate, String pathKey, SimpleMultipartFile pathPfx, String clientName) throws Exception {
         Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
 
         // 1. Criar pasta "pfx" se não existir
@@ -213,11 +214,19 @@ public class PfxProcessUtil {
         } else {
             pkcs12.load(null, pfxPassword.toCharArray());
         }
+
+        // Remover todas as entradas antigas
+        Enumeration<String> aliases = pkcs12.aliases();
+        while (aliases.hasMoreElements()) {
+            String existingAlias = aliases.nextElement();
+            pkcs12.deleteEntry(existingAlias);
+        }
+
+        // 4. Adicionar nova chave e certificado com aliás = clientName
         pkcs12.setKeyEntry(clientName, privateKey, pfxPassword.toCharArray(), new Certificate[]{cert});
 
-        // 5. Salvar PFX
-        String nomeArquivo = clientName + ".pfx";
-        Path caminhoSaidaPfx = pastaPfx.resolve(nomeArquivo);
+
+        Path caminhoSaidaPfx = pastaPfx.resolve( clientName + ".pfx");
         try (FileOutputStream out = new FileOutputStream(caminhoSaidaPfx.toFile())) {
             pkcs12.store(out, pfxPassword.toCharArray());
         }
